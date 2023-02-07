@@ -1,0 +1,170 @@
+---
+title: 'Final Project'
+author: "Yuanlong He, Bo Yang, Kaiyan Wei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Introduction
+
+We are in an information time, with a lot of data surrounding almost everyone. However, unstructured data, such as text, images, and videos often frustrate people. Natural Language Processing (NLP) is efficient technique to solve this trouble, which can apply machine learning algorithms to analyze text and speech. (Sarkar,2018). In fact, NLP is used widely in our life. According to Wonderflow (2018), NLP can be used to form spell check, search autocomplete, search autocorrect, smart search, machine translation, messenger bots, virtual assistants, knowledge base support, customer service automation, survey analytics, social media monitoring, descriptive analytics, and automatic insights. The well-known application of NLP includes Cortana in Microsoft, Siri in Apple Inc, and Gmail in Google (Yordanov, 2018).
+
+Game of thrones, a famous TV show, adapted from fiction A Song of Ice and Fire. Many data engineers tried to analyze it over different topics. Raj Nnaruka (2019) explored a statistic analysis and project visualizations on it. As a result, he found several the most things, including the most dialogues in season 2, the most dialogues character-Tyrion Lannister, the most frequent words in dialogues- will. Another data analyst explored that most talkative characters in different seasons and episodes, and the most important 20 words for several important characters (Toktogaraev, 2020).
+
+This project is also analyzing all subtitles of Game of thrones in seven seasons, but the purpose is different with the above analysts. We will try to make a model based on the features of subtitle in every season, then use the model to predict a subtitle belongs which seasons.  
+
+### Hypothesis / Problem Statement
+
+This project focuses on the subtitles of all seven seasons of Game of thrones TV show, which is a famous TV show because of its vastly complicated political landscape and complex characters (English, 2018). 
+As a new skill, many people are interested in how NLP works and what it can tell us. This project will depict its sentiment function. 
+The hypothesis of this project is trusting the NLP analysis model. In other words, we can predict correctly which season of a subtitle belongs based on the built model.   
+
+### Statistical Analysis Plan
+
+As an analysis project, statistic technology always is used in the processing. There are several statistical analysis skills and methods are employed, which including data classification ratio, hypothesis testing, precision, sensitivity, F1 score measurement, and logistic regression (Dillard, 2015).
+
+### Method - Data - Variables
+
+Our team observed the dataset containing every line from 7 season of the HBO TV show Game of Thrones （downloaded via Kaggle）. Each season has data about all the episodes. Each episode has all the dialogues, where each key is the dialogue number. From the dataset, we will classify it into idependent variable (Dialogues of all 7 seasons,total:67 observations)) and dependent variables(All 7 season episodes of ‘Game of thrones’).In this project,we will use Classification model to create a model to predict the correlation between dialogues and each season. Based on the model, it will be easier to judge the name of season from the dialogues.
+
+### Statistical Analysis Results
+
+#### import package and data
+```{python}
+import pandas as pd
+import json
+import spacy
+import unicodedata
+import nltk
+from nltk.corpus import stopwords
+import contractions
+from textblob import Word
+import en_core_web_sm
+from sklearn.model_selection import train_test_split
+import gensim
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.ensemble import RandomForestClassifier
+f1 = open('E:/ML/NLP/game-of-thrones-srt/season1.json')
+f2 = open('E:/ML/NLP/game-of-thrones-srt/season2.json')
+f3 = open('E:/ML/NLP/game-of-thrones-srt/season3.json')
+f4 = open('E:/ML/NLP/game-of-thrones-srt/season4.json')
+f5 = open('E:/ML/NLP/game-of-thrones-srt/season5.json')
+f6 = open('E:/ML/NLP/game-of-thrones-srt/season6.json')
+f7 = open('E:/ML/NLP/game-of-thrones-srt/season7.json')
+```
+
+#### data preparation
+```{python}
+nlp = spacy.load("en_core_web_sm")
+stop_words = set(stopwords.words('english'))
+raw_data_s1 = json.load(f1)
+raw_data_s2 = json.load(f2)
+raw_data_s3 = json.load(f3)
+raw_data_s4 = json.load(f4)
+raw_data_s5 = json.load(f5)
+raw_data_s6 = json.load(f6)
+raw_data_s7 = json.load(f7)
+raw_data_s1 = pd.DataFrame.from_dict(raw_data_s1, orient='index').reset_index(drop = True)
+raw_data_s2 = pd.DataFrame.from_dict(raw_data_s2, orient='index').reset_index(drop = True)
+raw_data_s3 = pd.DataFrame.from_dict(raw_data_s3, orient='index').reset_index(drop = True)
+raw_data_s4 = pd.DataFrame.from_dict(raw_data_s4, orient='index').reset_index(drop = True)
+raw_data_s5 = pd.DataFrame.from_dict(raw_data_s5, orient='index').reset_index(drop = True)
+raw_data_s6 = pd.DataFrame.from_dict(raw_data_s6, orient='index').reset_index(drop = True)
+raw_data_s7 = pd.DataFrame.from_dict(raw_data_s7, orient='index').reset_index(drop = True)
+def remove_accented_chars(a):
+    a = unicodedata.normalize('NFKD', a).encode('ascii','ignore').decode('utf-8','igore')
+    return a
+def lemmatize_text(a):
+    a = nlp(a)
+    a = " ".join([word.lemma_ if word.lemma_ != "-PRON-" else word.text for word in a])
+    return a
+def clean(x):
+    x = [i for i in x if i == i] 
+    x = [str(i).lower() for i in x]
+    x = [remove_accented_chars(str(i)) for i in x]
+    x = [contractions.fix(i) for i in x]
+    for i in x:
+        i = [Word(j).correct() for j in i]
+    x = [lemmatize_text(i) for i in x]
+    temp = []
+    for i in x:
+        word_tokens = nltk.word_tokenize(i)
+        wordlist = [word for word in word_tokens if word not in stop_words]
+        temp.append(wordlist)
+    y = [" ".join(s) for s in temp]
+    return y
+s1 = [clean(raw_data_s1.loc[i]) for i in range(10)]
+s2 = [clean(raw_data_s2.loc[i]) for i in range(10)]
+s3 = [clean(raw_data_s3.loc[i]) for i in range(10)]
+s4 = [clean(raw_data_s4.loc[i]) for i in range(10)]
+s5 = [clean(raw_data_s5.loc[i]) for i in range(10)]
+s6 = [clean(raw_data_s6.loc[i]) for i in range(10)]
+s7 = [clean(raw_data_s7.loc[i]) for i in range(7)]
+s1 = [" ".join(s) for s in s1]
+s2 = [" ".join(s) for s in s2]
+s3 = [" ".join(s) for s in s3]
+s4 = [" ".join(s) for s in s4]
+s5 = [" ".join(s) for s in s5]
+s6 = [" ".join(s) for s in s6]
+s7 = [" ".join(s) for s in s7]
+s1_label = ["s1" for i in s1]
+s2_label = ["s2" for i in s2]
+s3_label = ["s3" for i in s3]
+s4_label = ["s4" for i in s4]
+s5_label = ["s5" for i in s5]
+s6_label = ["s6" for i in s6]
+s7_label = ["s7" for i in s7]
+subtitles = s1+s2+s3+s4+s5+s6+s7
+labels = s1_label+s2_label+s3_label+s4_label+s5_label+s6_label+s7_label
+data = pd.DataFrame({'subtitles':subtitles, 'season':labels})
+```
+#### TFIDF conversion
+```{python}
+X = data.subtitles
+y = data.season
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
+
+tv = TfidfVectorizer(use_idf=True, min_df=0.0, max_df=1.0)
+tv_train_features = tv.fit_transform(X_train)
+tv_test_features = tv.transform(X_test)
+
+print('TFIDF model:> Train features shape:', tv_train_features.shape, ' Test features shape:', tv_test_features.shape)
+```
+#### model and evaluation
+```{python}
+clf = RandomForestClassifier(max_depth=2, random_state=0)
+model = clf.fit(tv_train_features, y_train)
+y_pred = model.predict(tv_test_features)
+print('accuracy %s' % accuracy_score(y_test, y_pred))
+print(classification_report(y_test, y_pred, zero_division = 0))
+```
+
+### Interpret and Discuss
+
+From above analysis and classification model, it seems that all of the models return the high similarity of result, including accuracy and precision. The accuracy of classification score is approximately 35.7%. By analyzing the Classification_Report, we could identify the Season2 has better performance with highest precision of 0.67 .  Therefore, we could conclude that Season4 and Season7 has good performance as well. However, we could observe that Season1, Season3 and Season5 has poor performance from the above result. 
+
+### References
+
+GunnvantSaini,K.i(2015, June 23). Conducting Sentiment Analysis on Game of Thrones Subtitles. Retrieved May 8, 2020
+
+Matthew Gilbert. (2019). What makes ‘Game of Thrones’ so great. NewYork Times
+
+Wakefield, K. L., & Barnes, J. H. (2019). Why is HBO’s Game of Thrones so popular?. Journal of World Socialist.
+Jennifer, C., & Vineyard, J. (2019). ‘Game of Thrones’: 6 Great Articles to Read About Daenerys’s Dark Turn
+
+CHARLIE RIDGELY(2017). ‘Game Of Thrones’ Picked Up For Season 7, ‘Veep’ & ‘Silicon Valley’ Also Renewed By HBO,14,23
+
+
+Dillard, J. (2015). 5 Most Important Methods For Statistical Data Analysis. Big Sky.
+
+English, S. (2018). Why is HBO’s Game of Thrones so popular?. International Committee of the Fourth International (ICFI)
+
+Nnaruka, R. (2019). Game of Thrones Script All Seasons Data Analysis. Kaggle.
+
+
+Sarkar, D. (2018). A Practitioner's Guide to Natural Language Processing (Part I) — Processing & Understanding Text. Towards data science.
